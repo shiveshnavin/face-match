@@ -1,8 +1,15 @@
 FROM python:3.10-slim
+
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:$PATH"
+
 WORKDIR /app
-COPY requirements.txt /app/
 RUN apt install cmake
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . /app/
+
+COPY --chown=user ./requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+COPY --chown=user . /app
+
 EXPOSE 7860
 CMD ["python", "app.py"]
