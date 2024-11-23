@@ -5,7 +5,7 @@ USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
 WORKDIR /app
-RUN sudo apt install cmake
+RUN apt-get install cmake
 
 COPY --chown=user ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
