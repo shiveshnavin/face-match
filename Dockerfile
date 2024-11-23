@@ -1,6 +1,6 @@
 from semibit/face-match:latest
 
-USER user
+# USER user
 WORKDIR /app
 RUN mkdir /app/flagged
 EXPOSE 7860
