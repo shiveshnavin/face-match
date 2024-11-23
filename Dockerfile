@@ -1,4 +1,4 @@
-from semibit/face-match:tagname
+from semibit/face-match:latest
 
 USER user
 WORKDIR /app
