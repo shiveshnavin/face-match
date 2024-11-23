@@ -1,5 +1,5 @@
 ---
-title: Face Recognition
+title: Face match
 emoji: 🚀
 colorFrom: yellow
 colorTo: blue
