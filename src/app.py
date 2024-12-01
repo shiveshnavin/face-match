@@ -1,53 +1,84 @@
 import gradio as gr
 import face_recognition
+import os
 
-def face_match(file1, file2, threshold):
+def face_match_batch(original_file, threshold, files):
     try:
-        # Load the images
-        image1 = face_recognition.load_image_file(file1)
-        image2 = face_recognition.load_image_file(file2)
+        if not files or len(files) == 0:
+            return {"error": "At least one file is required to match against the original."}
 
-        # Encode the faces
-        encodings1 = face_recognition.face_encodings(image1)
-        encodings2 = face_recognition.face_encodings(image2)
+        # Load the original image
+        original_image = face_recognition.load_image_file(original_file)
+        original_encodings = face_recognition.face_encodings(original_image)
 
-        if len(encodings1) == 0 and len(encodings2) == 0:
-            return {"error": "No faces detected in both images."}
-        elif len(encodings1) == 0:
-            return {"error": "No face detected in the first image."}
-        elif len(encodings2) == 0:
-            return {"error": "No face detected in the second image."}
+        if len(original_encodings) == 0:
+            return {"error": "No face detected in the original image."}
 
-        # Use the first face encoding from each image
-        face_encoding1 = encodings1[0]
-        face_encoding2 = encodings2[0]
+        original_encoding = original_encodings[0]
 
-        # Calculate the distance
-        distance = face_recognition.face_distance([face_encoding1], face_encoding2)[0]
+        response = []
 
-        # Determine match status
-        match_status = "match" if distance <= threshold else "no_match"
+        # Iterate through the files to match
+        for file in files:
+            try:
+                # Load the target image
+                target_image = face_recognition.load_image_file(file)
+                target_encodings = face_recognition.face_encodings(target_image)
 
-        return {
-            "status": match_status,
-            "distance": round(distance, 4),
-            "threshold": threshold
-        }
+                # Extract the file name from the full path
+                file_name = os.path.basename(file)
+
+                if len(target_encodings) == 0:
+                    # No face found in the target image
+                    response.append({
+                        "status": "no_face",
+                        "distance": 1.0,
+                        "confidence": 0.0,
+                        "file": file_name
+                    })
+                else:
+                    # Use the first face encoding from the target image
+                    target_encoding = target_encodings[0]
+
+                    # Calculate the distance
+                    distance = face_recognition.face_distance([original_encoding], target_encoding)[0]
+
+                    # Confidence percentage
+                    confidence = (1 - distance) * 100
+
+                    # Determine match status
+                    match_status = "match" if distance <= threshold else "no_match"
+
+                    response.append({
+                        "status": match_status,
+                        "distance": round(distance, 4),
+                        "confidence": round(confidence, 2),
+                        "file": file_name
+                    })
+
+            except Exception as e:
+                response.append({
+                    "status": "error",
+                    "distance": 1.0,
+                    "confidence": 0.0,
+                    "file": file_name
+                })
+
+        return response
 
     except Exception as e:
-        print(e)
         return {"error": f"Unexpected error: {str(e)}"}
 
 iface = gr.Interface(
-    fn=face_match,
+    fn=face_match_batch,
     inputs=[
-        gr.Image(type="filepath", label="Image 1"),
-        gr.Image(type="filepath", label="Image 2"),
-        gr.Number(value=0.6, label="Threshold")
+        gr.File(file_types=[".jpg", ".jpeg", ".png"], type="filepath", label="Original Image"),
+        gr.Number(value=0.6, label="Threshold"),
+        gr.File(file_types=[".jpg", ".jpeg", ".png"], type="filepath", label="Images to Match", file_count="multiple")
     ],
     outputs="json",
-    title="Face Match App",
-    description="Upload two images and set a threshold to check if the faces match."
+    title="Batch Face Match App",
+    description="Upload an original image, set a threshold, and upload multiple images to match against the original."
 )
 
 iface.launch(server_name="0.0.0.0")
